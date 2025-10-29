@@ -161,6 +161,21 @@ output/
 *.pdf
 !examples/*.pdf
 
+# === Dossier PDF ===
+# Ignorer les fichiers PDF dans input
+pdf/input/*.pdf
+pdf/input/**/*.pdf
+
+# Ignorer les fichiers DOCX dans output
+pdf/output/*.docx
+pdf/output/**/*.docx
+
+# Garder les README dans les dossiers
+!pdf/README.md
+!pdf/input/README.md
+!pdf/output/README.md
+!pdf/**/README.md
+
 # Base de données locale
 *.db
 *.sqlite

@@ -127,6 +127,26 @@ python main.py convert document.pdf -vv --show-stats
 python main.py convert document.pdf -c /path/to/credentials.json
 ```
 
+### Organisation avec le dossier pdf/
+
+Le projet inclut un dossier `pdf/` organisé pour faciliter la gestion de vos documents :
+
+```bash
+# 1. Placez vos PDFs dans pdf/input/
+cp mon_document.pdf pdf/input/
+
+# 2. Convertissez avec sortie automatique dans pdf/output/
+python main.py convert pdf/input/mon_document.pdf -o pdf/output/mon_document.docx
+
+# 3. Conversion par lot de tous les PDFs
+for pdf in pdf/input/*.pdf; do
+  filename=$(basename "$pdf" .pdf)
+  python main.py convert "$pdf" -o "pdf/output/${filename}_ocr.docx"
+done
+```
+
+**Voir `pdf/README.md` pour plus de détails sur l'organisation des fichiers.**
+
 ### Options complètes
 
 ```
@@ -155,6 +175,13 @@ VisionOCR/
 │
 ├── credentials/
 │   └── google_credentials.json  # Clés API (non versionné)
+│
+├── pdf/                        # Dossier de travail pour PDFs
+│   ├── README.md              # Guide d'organisation
+│   ├── input/                 # PDFs à traiter (placez vos fichiers ici)
+│   │   └── README.md          # Instructions détaillées
+│   └── output/                # Documents Word générés
+│       └── README.md          # Informations sur les résultats
 │
 ├── modules/
 │   ├── __init__.py
