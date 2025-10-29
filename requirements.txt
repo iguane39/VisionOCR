@@ -1,0 +1,48 @@
+# Requirements for VisionOCR - PDF to Word OCR with Google Cloud Vision API
+
+# Google Cloud Vision API
+google-cloud-vision==3.7.0
+google-auth==2.29.0
+
+# PDF Processing
+pdf2image==1.17.0
+Pillow==10.3.0
+
+# Word Document Creation
+python-docx==1.1.0
+
+# Data Processing
+numpy==1.26.4
+
+# CLI Interface
+click==8.1.7
+
+# Configuration
+python-dotenv==1.0.1
+
+# Logging
+loguru==0.7.2
+
+# Progress Bars
+tqdm==4.66.2
+
+# Caching
+diskcache==5.6.3
+
+# Machine Learning (optional for clustering)
+scikit-learn==1.4.2
+
+# Parallel Processing (optional)
+joblib==1.4.0
+
+# Development Dependencies (optional)
+# pytest==8.1.1
+# black==24.3.0
+# flake8==7.0.0
+# mypy==1.9.0
+
+# Note: pdf2image nécessite poppler-utils
+# Installation système requise:
+# - Ubuntu/Debian: sudo apt-get install poppler-utils
+# - macOS: brew install poppler
+# - Windows: Télécharger depuis https://github.com/oschwartz10612/poppler-windows/releases/
