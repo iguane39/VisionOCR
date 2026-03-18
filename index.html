@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VisionOCR — PDF scannés vers Word avec Google Cloud Vision API</title>
+  <meta name="description" content="VisionOCR est un outil CLI Python qui convertit des PDFs scannés en documents Word éditables avec une précision OCR de 99%+ grâce à Google Cloud Vision API.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── CSS Custom Properties ── */
+    :root {
+      --color-primary: #3b82f6;
+      --color-primary-dark: #2563eb;
+      --color-primary-light: #dbeafe;
+      --color-primary-50: #eff6ff;
+      --color-purple: #8b5cf6;
+      --color-purple-dark: #7c3aed;
+      --color-purple-light: #ede9fe;
+      --color-emerald: #10b981;
+      --color-emerald-dark: #059669;
+      --color-emerald-light: #d1fae5;
+      --color-amber: #f59e0b;
+      --color-amber-dark: #d97706;
+      --color-amber-light: #fef3c7;
+      --color-gray-50: #f9fafb;
+      --color-gray-100: #f3f4f6;
+      --color-gray-200: #e5e7eb;
+      --color-gray-300: #d1d5db;
+      --color-gray-400: #9ca3af;
+      --color-gray-500: #6b7280;
+      --color-gray-600: #4b5563;
+      --color-gray-700: #374151;
+      --color-gray-800: #1f2937;
+      --color-gray-900: #111827;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    }
+
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      color: var(--color-gray-800);
+      line-height: 1.6;
+      background: #fff;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--color-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; }
+
+    /* ── Layout ── */
+    .container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+    .section { padding: 80px 0; }
+    .section-gray { background: var(--color-gray-50); }
+
+    /* ── Typography ── */
+    h1 { font-size: 3rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; }
+    h2 { font-size: 1.875rem; font-weight: 700; line-height: 1.25; letter-spacing: -0.015em; color: var(--color-gray-900); }
+    h3 { font-size: 1.25rem; font-weight: 600; line-height: 1.35; color: var(--color-gray-900); }
+    h4 { font-size: 1.05rem; font-weight: 600; line-height: 1.4; color: var(--color-gray-900); }
+    .section-subtitle { color: var(--color-gray-500); font-size: 1.1rem; margin-top: 12px; max-width: 680px; }
+    .section-header { margin-bottom: 48px; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 500;
+      line-height: 1.6;
+    }
+    .badge-blue { background: rgba(59,130,246,0.12); color: var(--color-primary); }
+    .badge-purple { background: rgba(139,92,246,0.12); color: var(--color-purple); }
+    .badge-emerald { background: rgba(16,185,129,0.12); color: var(--color-emerald-dark); }
+    .badge-amber { background: rgba(245,158,11,0.12); color: var(--color-amber-dark); }
+    .badge-gray { background: var(--color-gray-100); color: var(--color-gray-600); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: var(--radius-lg);
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-purple));
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(59,130,246,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.4); text-decoration: none; }
+    .btn-outline {
+      background: transparent;
+      color: var(--color-gray-700);
+      border: 2px solid var(--color-gray-200);
+    }
+    .btn-outline:hover { border-color: var(--color-primary); color: var(--color-primary); text-decoration: none; }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff;
+      border: 1px solid var(--color-gray-200);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      transition: box-shadow 0.2s;
+    }
+    .card:hover { box-shadow: var(--shadow-md); }
+
+    /* ── Grid ── */
+    .grid { display: grid; gap: 24px; }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-6 { grid-template-columns: repeat(3, 1fr); }
+
+    /* ── Icon wrapper ── */
+    .icon-wrap {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-lg);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-wrap svg { width: 22px; height: 22px; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-wrap-blue { background: var(--color-primary-light); }
+    .icon-wrap-blue svg { stroke: var(--color-primary); }
+    .icon-wrap-purple { background: var(--color-purple-light); }
+    .icon-wrap-purple svg { stroke: var(--color-purple); }
+    .icon-wrap-emerald { background: var(--color-emerald-light); }
+    .icon-wrap-emerald svg { stroke: var(--color-emerald); }
+    .icon-wrap-amber { background: var(--color-amber-light); }
+    .icon-wrap-amber svg { stroke: var(--color-amber); }
+
+    /* ══════════════════════════════════════════
+       HERO
+    ══════════════════════════════════════════ */
+    .hero {
+      background: linear-gradient(135deg, #eff6ff 0%, #ede9fe 50%, #faf5ff 100%);
+      padding: 100px 0 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; right: -120px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(59,130,246,0.08), transparent 70%);
+      border-radius: 50%;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; left: -80px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(139,92,246,0.08), transparent 70%);
+      border-radius: 50%;
+    }
+    .hero .container { position: relative; z-index: 1; }
+    .hero-badges { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
+    .hero h1 { margin-bottom: 20px; color: var(--color-gray-900); }
+    .hero h1 span { color: var(--color-primary); }
+    .hero-subtitle {
+      font-size: 1.2rem;
+      color: var(--color-gray-600);
+      max-width: 700px;
+      margin-bottom: 36px;
+      line-height: 1.7;
+    }
+
+    /* ══════════════════════════════════════════
+       ANSWER BOX
+    ══════════════════════════════════════════ */
+    .answer-box {
+      background: var(--color-primary-50);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-left: 4px solid var(--color-primary);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      margin-top: -40px;
+      position: relative;
+      z-index: 2;
+      font-size: 1.02rem;
+      line-height: 1.75;
+      color: var(--color-gray-700);
+    }
+
+    /* ══════════════════════════════════════════
+       CHALLENGES
+    ══════════════════════════════════════════ */
+    .challenge-item {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--color-gray-100);
+    }
+    .challenge-item:last-child { border-bottom: none; }
+    .challenge-item h4 { margin-bottom: 4px; }
+    .challenge-item p { color: var(--color-gray-500); font-size: 0.92rem; }
+
+    .scope-card {
+      border-top: 3px solid var(--color-primary);
+    }
+    .constraint-card {
+      border-top: 3px solid var(--color-purple);
+    }
+    .scope-card h4, .constraint-card h4 { margin-bottom: 16px; }
+    .scope-card li, .constraint-card li {
+      color: var(--color-gray-600);
+      font-size: 0.93rem;
+      padding: 6px 0;
+      list-style: none;
+      position: relative;
+      padding-left: 20px;
+    }
+    .scope-card li::before, .constraint-card li::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 14px;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--color-gray-300);
+    }
+
+    /* ══════════════════════════════════════════
+       OBJECTIVES
+    ══════════════════════════════════════════ */
+    .objective-card {
+      text-align: left;
+    }
+    .objective-card .icon-wrap { margin-bottom: 20px; }
+    .objective-card .obj-type {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .objective-card h3 { margin-bottom: 10px; }
+    .objective-card p { color: var(--color-gray-500); font-size: 0.93rem; margin-bottom: 18px; }
+    .objective-kpis { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    /* ══════════════════════════════════════════
+       TECH STACK
+    ══════════════════════════════════════════ */
+    .tech-card {
+      border-left: 4px solid var(--color-gray-200);
+      padding-left: 20px;
+    }
+    .tech-card.tc-blue { border-left-color: var(--color-primary); }
+    .tech-card.tc-purple { border-left-color: var(--color-purple); }
+    .tech-card.tc-emerald { border-left-color: var(--color-emerald); }
+    .tech-card.tc-amber { border-left-color: var(--color-amber); }
+    .tech-card h4 { margin-bottom: 14px; font-size: 0.95rem; }
+    .tech-tag {
+      display: inline-block;
+      background: var(--color-gray-100);
+      color: var(--color-gray-700);
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 0.82rem;
+      font-weight: 500;
+      margin: 3px 4px 3px 0;
+    }
+    .pattern-box {
+      background: linear-gradient(135deg, var(--color-emerald-light), #ecfdf5);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      margin-top: 32px;
+    }
+    .pattern-box h4 { color: var(--color-emerald-dark); margin-bottom: 10px; font-size: 1rem; }
+    .pattern-box p { color: var(--color-gray-600); font-size: 0.93rem; line-height: 1.7; }
+
+    /* ══════════════════════════════════════════
+       ARCHITECTURE
+    ══════════════════════════════════════════ */
+    .arch-tabs { display: flex; gap: 8px; margin-bottom: 32px; }
+    .tab-btn {
+      padding: 10px 22px;
+      border-radius: var(--radius-full);
+      font-size: 0.9rem;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      border: 1px solid var(--color-gray-200);
+      background: #fff;
+      color: var(--color-gray-600);
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--color-primary);
+      color: #fff;
+      border-color: var(--color-primary);
+      box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Architecture diagram shared */
+    .arch-diagram {
+      background: #fff;
+      border: 1px solid var(--color-gray-200);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      overflow-x: auto;
+    }
+
+    /* ── Tab 1: Vue d'ensemble ── */
+    .arch-overview {
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+      min-width: 700px;
+    }
+    .arch-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: nowrap;
+    }
+    .arch-node {
+      border: 2px solid var(--color-gray-200);
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      text-align: center;
+      background: #fff;
+      min-width: 140px;
+      position: relative;
+    }
+    .arch-node-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-gray-800);
+    }
+    .arch-node-sub {
+      font-size: 0.72rem;
+      color: var(--color-gray-400);
+      margin-top: 2px;
+    }
+    .arch-node-blue { border-color: var(--color-primary); background: var(--color-primary-50); }
+    .arch-node-purple { border-color: var(--color-purple); background: var(--color-purple-light); }
+    .arch-node-emerald { border-color: var(--color-emerald); background: var(--color-emerald-light); }
+    .arch-node-amber { border-color: var(--color-amber); background: var(--color-amber-light); }
+    .arch-node-dark { border-color: var(--color-gray-700); background: var(--color-gray-800); }
+    .arch-node-dark .arch-node-label { color: #fff; }
+    .arch-node-dark .arch-node-sub { color: var(--color-gray-400); }
+    .arch-node-ext {
+      border-style: dashed;
+      border-color: var(--color-primary);
+      background: #fff;
+    }
+
+    .arch-arrow-down {
+      display: flex;
+      justify-content: center;
+      padding: 4px 0;
+      color: var(--color-gray-400);
+    }
+    .arch-arrow-right {
+      color: var(--color-gray-300);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Tab 2: Pipeline ── */
+    .pipeline {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      min-width: 800px;
+    }
+    .pipeline-stage {
+      flex: 1;
+      border-radius: var(--radius-xl);
+      padding: 24px 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .pipeline-stage-blue { background: var(--color-primary-50); border: 1px solid rgba(59,130,246,0.2); }
+    .pipeline-stage-purple { background: var(--color-purple-light); border: 1px solid rgba(139,92,246,0.2); }
+    .pipeline-stage-emerald { background: var(--color-emerald-light); border: 1px solid rgba(16,185,129,0.2); }
+    .pipeline-stage-amber { background: var(--color-amber-light); border: 1px solid rgba(245,158,11,0.2); }
+
+    .pipeline-num {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+    .pipeline-stage-blue .pipeline-num { background: var(--color-primary); }
+    .pipeline-stage-purple .pipeline-num { background: var(--color-purple); }
+    .pipeline-stage-emerald .pipeline-num { background: var(--color-emerald); }
+    .pipeline-stage-amber .pipeline-num { background: var(--color-amber); }
+
+    .pipeline-stage h4 { font-size: 0.95rem; margin-bottom: 6px; }
+    .pipeline-component {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.72rem;
+      font-weight: 600;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 14px;
+      background: rgba(0,0,0,0.06);
+      color: var(--color-gray-700);
+    }
+    .pipeline-detail {
+      font-size: 0.8rem;
+      color: var(--color-gray-600);
+      line-height: 1.6;
+    }
+    .pipeline-detail strong { color: var(--color-gray-700); }
+    .pipeline-io {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      font-size: 0.75rem;
+      color: var(--color-gray-400);
+    }
+    .pipeline-io span { display: block; margin-bottom: 2px; }
+
+    .pipeline-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      color: var(--color-gray-300);
+      flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════
+       RESULTS
+    ══════════════════════════════════════════ */
+    .metric-card {
+      text-align: center;
+      padding-top: 20px;
+      position: relative;
+    }
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 24px; right: 24px;
+      height: 4px;
+      border-radius: 2px;
+    }
+    .metric-card-blue::before { background: var(--color-primary); }
+    .metric-card-purple::before { background: var(--color-purple); }
+    .metric-card-emerald::before { background: var(--color-emerald); }
+    .metric-card-amber::before { background: var(--color-amber); }
+    .metric-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .metric-card-blue .metric-value { color: var(--color-primary); }
+    .metric-card-purple .metric-value { color: var(--color-purple); }
+    .metric-card-emerald .metric-value { color: var(--color-emerald); }
+    .metric-card-amber .metric-value { color: var(--color-amber); }
+    .metric-label { font-size: 0.92rem; font-weight: 600; color: var(--color-gray-800); margin-top: 6px; }
+    .metric-desc { font-size: 0.82rem; color: var(--color-gray-500); margin-top: 4px; }
+
+    /* ── Comparison table ── */
+    .comparison-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 48px;
+      border: 1px solid var(--color-gray-200);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .comparison-table th {
+      background: var(--color-gray-50);
+      padding: 14px 18px;
+      text-align: left;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-gray-700);
+      border-bottom: 1px solid var(--color-gray-200);
+    }
+    .comparison-table td {
+      padding: 13px 18px;
+      font-size: 0.88rem;
+      color: var(--color-gray-600);
+      border-bottom: 1px solid var(--color-gray-100);
+    }
+    .comparison-table tr:last-child td { border-bottom: none; }
+    .comparison-table .gain-cell { color: var(--color-emerald-dark); font-weight: 600; }
+
+    /* ── Benefits ── */
+    .benefit-card {
+      text-align: center;
+    }
+    .benefit-emoji { font-size: 1.8rem; margin-bottom: 12px; }
+    .benefit-card h4 { margin-bottom: 6px; font-size: 0.95rem; }
+    .benefit-card p { color: var(--color-gray-500); font-size: 0.87rem; }
+
+    /* ══════════════════════════════════════════
+       CTA
+    ══════════════════════════════════════════ */
+    .cta-section {
+      background: linear-gradient(135deg, var(--color-gray-900), #1e293b);
+      color: #fff;
+      padding: 80px 0;
+      text-align: center;
+    }
+    .cta-section h2 { color: #fff; margin-bottom: 16px; }
+    .cta-section p { color: var(--color-gray-400); max-width: 560px; margin: 0 auto 36px; font-size: 1.05rem; }
+    .cta-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .cta-section .btn-outline { color: var(--color-gray-300); border-color: var(--color-gray-600); }
+    .cta-section .btn-outline:hover { border-color: var(--color-primary); color: #fff; }
+
+    /* ══════════════════════════════════════════
+       FOOTER
+    ══════════════════════════════════════════ */
+    .footer {
+      background: var(--color-gray-900);
+      color: var(--color-gray-400);
+      padding: 60px 0 30px;
+      font-size: 0.88rem;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .footer h5 { color: #fff; font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; }
+    .footer-brand p { margin-bottom: 8px; line-height: 1.6; }
+    .footer ul { list-style: none; }
+    .footer li { margin-bottom: 8px; }
+    .footer a { color: var(--color-gray-400); }
+    .footer a:hover { color: #fff; }
+    .footer-bottom {
+      border-top: 1px solid var(--color-gray-800);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-bottom a { margin-left: 20px; }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════ */
+    @media (max-width: 1024px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      h1 { font-size: 2.2rem; }
+      h2 { font-size: 1.5rem; }
+      .section { padding: 56px 0; }
+      .hero { padding: 80px 0 60px; }
+      .grid-2, .grid-3, .grid-4, .grid-6 { grid-template-columns: 1fr; }
+      .arch-tabs { flex-direction: column; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .footer-bottom { justify-content: center; text-align: center; }
+      .cta-buttons { flex-direction: column; align-items: center; }
+    }
+    @media (max-width: 480px) {
+      h1 { font-size: 1.8rem; }
+      .container { padding: 0 16px; }
+      .hero { padding: 60px 0 48px; }
+      .hero-subtitle { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═════════════════ HERO ═════════════════ -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badges">
+        <span class="badge badge-blue">Réalisation</span>
+        <span class="badge badge-purple">Document Processing</span>
+        <span class="badge badge-gray">Python 3.8+ &middot; CLI</span>
+        <span class="badge badge-emerald">OCR & NLP</span>
+      </div>
+      <h1>Vision<span>OCR</span></h1>
+      <p class="hero-subtitle">
+        Convertissez vos PDFs scannés en documents Word éditables avec une précision de 99&nbsp;%+ — préservation du formatage, cache intelligent et support de 60+ langues grâce à Google Cloud Vision API.
+      </p>
+      <a href="https://github.com/iguane39/VisionOCR" class="btn btn-primary" target="_blank" rel="noopener">
+        Voir sur GitHub
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ═════════════════ ANSWER BOX ═════════════════ -->
+  <section class="section" style="padding-top:40px;">
+    <div class="container">
+      <div class="answer-box">
+        <strong>VisionOCR</strong> est un outil CLI Python développé pour transformer des PDFs scannés en documents Word (.docx) fidèles à l'original. Grâce à un pipeline en 4&nbsp;étapes s'appuyant sur <strong>Google Cloud Vision API</strong>, il détecte le texte avec une précision supérieure à 99&nbsp;%, analyse le formatage (polices, alignements, espacements) et reconstruit un document Word préservant la mise en page d'origine. Un <strong>cache intelligent SHA-256</strong> avec TTL de 30&nbsp;jours élimine les appels API redondants, ramenant le coût des retraitements à zéro.
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════ CONTEXTE & DÉFIS ═════════════════ -->
+  <section class="section" style="padding-top:0;">
+    <div class="container">
+      <div class="section-header">
+        <h2>Contexte &amp; Défis</h2>
+        <p class="section-subtitle">Pourquoi les solutions de conversion PDF-to-Word classiques ne suffisent pas</p>
+      </div>
+
+      <div style="margin-bottom:40px;">
+        <div class="challenge-item">
+          <div class="icon-wrap icon-wrap-amber">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <h4>Précision OCR limitée</h4>
+            <p>Les outils OCR classiques offrent une précision de 85-90&nbsp;%, insuffisante pour des documents professionnels, anciens ou scannés en basse résolution.</p>
+          </div>
+        </div>
+        <div class="challenge-item">
+          <div class="icon-wrap icon-wrap-purple">
+            <svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+          </div>
+          <div>
+            <h4>Perte de formatage systématique</h4>
+            <p>Polices, alignements, tailles de texte et espacements sont rarement préservés lors de la conversion, nécessitant une remise en page manuelle chronophage.</p>
+          </div>
+        </div>
+        <div class="challenge-item">
+          <div class="icon-wrap icon-wrap-blue">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div>
+            <h4>Support multilingue insuffisant</h4>
+            <p>La plupart des outils ne gèrent correctement que quelques langues, limitant leur usage dans un contexte international ou multilingue.</p>
+          </div>
+        </div>
+        <div class="challenge-item">
+          <div class="icon-wrap icon-wrap-emerald">
+            <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <div>
+            <h4>Coûts API non maîtrisés</h4>
+            <p>Chaque appel à un service OCR cloud coûte, et sans mécanisme de cache intégré, les retraitements multiplient inutilement la facture.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card scope-card">
+          <h4>Périmètre fonctionnel</h4>
+          <ul>
+            <li>Documents scannés : livres, factures, administratifs, manuels techniques</li>
+            <li>Traitement multi-pages avec sélection par plage ou liste</li>
+            <li>Support de 60+ langues avec détection automatique</li>
+            <li>Résolution configurable de 300 à 600+ DPI</li>
+            <li>Traitement par lot et automatisation via CLI</li>
+          </ul>
+        </div>
+        <div class="card constraint-card">
+          <h4>Contraintes principales</h4>
+          <ul>
+            <li>Précision OCR cible &gt; 99&nbsp;% sur tout type de document</li>
+            <li>Préservation fidèle du formatage (polices, styles, alignements)</li>
+            <li>Coûts maîtrisés via cache intelligent avec TTL 30 jours</li>
+            <li>Compatibilité cross-platform : Linux, macOS, Windows</li>
+            <li>Dépendance système unique : poppler-utils</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════ OBJECTIFS ═════════════════ -->
+  <section class="section section-gray">
+    <div class="container">
+      <div class="section-header">
+        <h2>Objectifs</h2>
+        <p class="section-subtitle">Trois axes stratégiques pour une conversion PDF-to-Word de qualité professionnelle</p>
+      </div>
+
+      <div class="grid grid-3">
+        <!-- Stratégique -->
+        <div class="card objective-card">
+          <div class="icon-wrap icon-wrap-blue">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          </div>
+          <div class="obj-type" style="color:var(--color-primary);">Objectif stratégique</div>
+          <h3>Démocratiser l'OCR professionnel</h3>
+          <p>Rendre accessible une conversion PDF-to-Word de qualité supérieure via un outil CLI simple, open-source et extensible.</p>
+          <div class="objective-kpis">
+            <span class="badge badge-blue">99&nbsp;%+ précision OCR</span>
+            <span class="badge badge-blue">60+ langues</span>
+          </div>
+        </div>
+        <!-- Opérationnel -->
+        <div class="card objective-card">
+          <div class="icon-wrap icon-wrap-purple">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <div class="obj-type" style="color:var(--color-purple);">Objectif opérationnel</div>
+          <h3>Automatiser le workflow complet</h3>
+          <p>Automatiser le pipeline complet — du PDF brut au document Word formaté — avec traitement par lot et cache intelligent.</p>
+          <div class="objective-kpis">
+            <span class="badge badge-purple">2-3s par page</span>
+            <span class="badge badge-purple">Cache 30j TTL</span>
+          </div>
+        </div>
+        <!-- Technique -->
+        <div class="card objective-card">
+          <div class="icon-wrap icon-wrap-emerald">
+            <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </div>
+          <div class="obj-type" style="color:var(--color-emerald);">Objectif technique</div>
+          <h3>Maîtriser les coûts cloud</h3>
+          <p>Minimiser les coûts Google Cloud Vision API grâce à un cache disque persistant SHA-256 et une compression automatique des images &gt;&nbsp;20&nbsp;MB.</p>
+          <div class="objective-kpis">
+            <span class="badge badge-emerald">1000 pages/mois gratuites</span>
+            <span class="badge badge-emerald">$1.50 / 1000 pages</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════ STACK TECHNIQUE ═════════════════ -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Stack Technique</h2>
+        <p class="section-subtitle">Les technologies et librairies au cœur de VisionOCR</p>
+      </div>
+
+      <div class="grid grid-6">
+        <div class="tech-card tc-blue">
+          <h4>OCR &amp; Vision</h4>
+          <span class="tech-tag">Google Cloud Vision API</span>
+          <span class="tech-tag">google-cloud-vision 3.7</span>
+          <span class="tech-tag">google-auth 2.29</span>
+        </div>
+        <div class="tech-card tc-purple">
+          <h4>Traitement PDF</h4>
+          <span class="tech-tag">pdf2image 1.17</span>
+          <span class="tech-tag">Pillow 10.3</span>
+          <span class="tech-tag">poppler-utils</span>
+        </div>
+        <div class="tech-card tc-emerald">
+          <h4>Génération Word</h4>
+          <span class="tech-tag">python-docx 1.1</span>
+          <span class="tech-tag">Styles personnalisés</span>
+          <span class="tech-tag">Préservation formatage</span>
+        </div>
+        <div class="tech-card tc-amber">
+          <h4>Analyse &amp; ML</h4>
+          <span class="tech-tag">numpy 1.26</span>
+          <span class="tech-tag">scikit-learn 1.4</span>
+          <span class="tech-tag">DBSCAN clustering</span>
+        </div>
+        <div class="tech-card tc-blue">
+          <h4>CLI &amp; Configuration</h4>
+          <span class="tech-tag">Click 8.1</span>
+          <span class="tech-tag">python-dotenv 1.0</span>
+          <span class="tech-tag">loguru 0.7</span>
+          <span class="tech-tag">tqdm 4.66</span>
+        </div>
+        <div class="tech-card tc-purple">
+          <h4>Performance &amp; Cache</h4>
+          <span class="tech-tag">diskcache 5.6</span>
+          <span class="tech-tag">joblib 1.4</span>
+          <span class="tech-tag">ThreadPoolExecutor</span>
+        </div>
+      </div>
+
+      <div class="pattern-box">
+        <h4>Pattern différenciant — Cache intelligent SHA-256</h4>
+        <p>
+          Contrairement aux outils OCR classiques qui facturent chaque traitement, VisionOCR utilise un hash SHA-256 du contenu de chaque image pour créer une clé de cache unique. Les résultats OCR sont stockés localement via <strong>diskcache</strong> avec un TTL de 30&nbsp;jours, éliminant les appels API redondants. Résultat&nbsp;: le coût de retraitement tombe à <strong>zéro</strong>, et le temps de traitement des documents déjà analysés est <strong>instantané</strong>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════ ARCHITECTURE ═════════════════ -->
+  <section class="section section-gray">
+    <div class="container">
+      <div class="section-header">
+        <h2>Schémas d'Architecture</h2>
+        <p class="section-subtitle">Vue d'ensemble de l'application et du pipeline de traitement OCR</p>
+      </div>
+
+      <div class="arch-tabs">
+        <button class="tab-btn active" data-tab="tab-overview" onclick="showTab('tab-overview')">Vue d'ensemble applicative</button>
+        <button class="tab-btn" data-tab="tab-pipeline" onclick="showTab('tab-pipeline')">Pipeline de traitement OCR</button>
+      </div>
+
+      <!-- TAB 1: Vue d'ensemble -->
+      <div id="tab-overview" class="tab-content active">
+        <div class="arch-diagram">
+          <div class="arch-overview">
+            <!-- Row 1: User + Input -->
+            <div class="arch-row">
+              <div class="arch-node arch-node-dark" style="min-width:120px;">
+                <div class="arch-node-label">Utilisateur</div>
+                <div class="arch-node-sub">Terminal / CLI</div>
+              </div>
+              <div class="arch-arrow-right">
+                <svg width="40" height="24" viewBox="0 0 40 24"><defs><marker id="ah1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9ca3af"/></marker></defs><line x1="0" y1="12" x2="32" y2="12" stroke="#9ca3af" stroke-width="2" marker-end="url(#ah1)"/></svg>
+              </div>
+              <div class="arch-node arch-node-blue">
+                <div class="arch-node-label">main.py</div>
+                <div class="arch-node-sub">CLI Click &middot; Orchestrateur</div>
+              </div>
+              <div class="arch-arrow-right">
+                <svg width="40" height="24" viewBox="0 0 40 24"><line x1="0" y1="12" x2="32" y2="12" stroke="#9ca3af" stroke-width="2" marker-end="url(#ah1)"/></svg>
+              </div>
+              <div class="arch-node" style="border-color:var(--color-gray-400);">
+                <div class="arch-node-label">config.py</div>
+                <div class="arch-node-sub">Configuration centrale</div>
+              </div>
+            </div>
+
+            <!-- Arrow down -->
+            <div class="arch-arrow-down">
+              <svg width="24" height="36" viewBox="0 0 24 36"><defs><marker id="ah2" markerWidth="8" markerHeight="6" refX="4" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#9ca3af"/></marker></defs><line x1="12" y1="0" x2="12" y2="28" stroke="#9ca3af" stroke-width="2" marker-end="url(#ah2)"/></svg>
+            </div>
+
+            <!-- Row 2: 4 Modules -->
+            <div class="arch-row">
+              <div class="arch-node arch-node-blue">
+                <div class="arch-node-label">PDFProcessor</div>
+                <div class="arch-node-sub">pdf_processor.py</div>
+              </div>
+              <div class="arch-arrow-right">
+                <svg width="32" height="24" viewBox="0 0 32 24"><line x1="0" y1="12" x2="24" y2="12" stroke="#9ca3af" stroke-width="2" marker-end="url(#ah1)"/></svg>
+              </div>
+              <div class="arch-node arch-node-purple">
+                <div class="arch-node-label">VisionAPIClient</div>
+                <div class="arch-node-sub">vision_api_client.py</div>
+              </div>
+              <div class="arch-arrow-right">
+                <svg width="32" height="24" viewBox="0 0 32 24"><line x1="0" y1="12" x2="24" y2="12" stroke="#9ca3af" stroke-width="2" marker-end="url(#ah1)"/></svg>
+              </div>
+              <div class="arch-node arch-node-emerald">
+                <div class="arch-node-label">FormatAnalyzer</div>
+                <div class="arch-node-sub">format_analyzer.py</div>
+              </div>
+              <div class="arch-arrow-right">
+                <svg width="32" height="24" viewBox="0 0 32 24"><line x1="0" y1="12" x2="24" y2="12" stroke="#9ca3af" stroke-width="2" marker-end="url(#ah1)"/></svg>
+              </div>
+              <div class="arch-node arch-node-amber">
+                <div class="arch-node-label">DocxBuilder</div>
+                <div class="arch-node-sub">docx_builder.py</div>
+              </div>
+            </div>
+
+            <!-- Arrows down from VisionAPIClient -->
+            <div class="arch-arrow-down">
+              <svg width="24" height="36" viewBox="0 0 24 36"><line x1="12" y1="0" x2="12" y2="28" stroke="#9ca3af" stroke-width="2" marker-end="url(#ah2)"/></svg>
+            </div>
+
+            <!-- Row 3: External services + IO -->
+            <div class="arch-row">
+              <div class="arch-node" style="border: 2px dashed var(--color-primary); min-width:130px;">
+                <div class="arch-node-label" style="font-size:0.78rem;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px;"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                  Google Cloud Vision API
+                </div>
+                <div class="arch-node-sub">Service externe OCR</div>
+              </div>
+              <div class="arch-node" style="border: 2px dashed var(--color-emerald); min-width:110px;">
+                <div class="arch-node-label" style="font-size:0.78rem;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                  diskcache
+                </div>
+                <div class="arch-node-sub">Cache local SHA-256</div>
+              </div>
+              <div class="arch-node" style="border-color:var(--color-gray-300); min-width:100px;">
+                <div class="arch-node-label" style="font-size:0.78rem;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-gray-500)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  PDF Input
+                </div>
+                <div class="arch-node-sub">pdf/input/</div>
+              </div>
+              <div class="arch-node" style="border-color:var(--color-gray-300); min-width:100px;">
+                <div class="arch-node-label" style="font-size:0.78rem;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  DOCX Output
+                </div>
+                <div class="arch-node-sub">pdf/output/</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Pipeline -->
+      <div id="tab-pipeline" class="tab-content">
+        <div class="arch-diagram">
+          <div class="pipeline">
+            <!-- Stage 1 -->
+            <div class="pipeline-stage pipeline-stage-blue">
+              <div class="pipeline-num">1</div>
+              <h4>PDF &rarr; Images</h4>
+              <span class="pipeline-component">PDFProcessor</span>
+              <div class="pipeline-detail">
+                <strong>pdf2image</strong> + <strong>Pillow</strong><br>
+                Conversion haute résolution @ 300&nbsp;DPI<br>
+                Parallélisation via ThreadPoolExecutor (4&nbsp;workers)<br>
+                Compression auto &gt;&nbsp;20&nbsp;MB<br>
+                Format PNG
+              </div>
+              <div class="pipeline-io">
+                <span><strong>In:</strong> document.pdf</span>
+                <span><strong>Out:</strong> page_001.png, page_002.png…</span>
+              </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="pipeline-arrow">
+              <svg width="28" height="24" viewBox="0 0 28 24"><defs><marker id="pa1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#d1d5db"/></marker></defs><line x1="0" y1="12" x2="20" y2="12" stroke="#d1d5db" stroke-width="2.5" marker-end="url(#pa1)"/></svg>
+            </div>
+
+            <!-- Stage 2 -->
+            <div class="pipeline-stage pipeline-stage-purple">
+              <div class="pipeline-num">2</div>
+              <h4>OCR Processing</h4>
+              <span class="pipeline-component">VisionAPIClient</span>
+              <div class="pipeline-detail">
+                <strong>DOCUMENT_TEXT_DETECTION</strong><br>
+                Cache SHA-256 via diskcache<br>
+                Batch support (16&nbsp;images/lot)<br>
+                Détection langue auto (fr, en…)<br>
+                Extraction&nbsp;: blocs, paragraphes, mots, symboles
+              </div>
+              <div class="pipeline-io">
+                <span><strong>In:</strong> Images PNG</span>
+                <span><strong>Out:</strong> Annotations structurées</span>
+              </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="pipeline-arrow">
+              <svg width="28" height="24" viewBox="0 0 28 24"><line x1="0" y1="12" x2="20" y2="12" stroke="#d1d5db" stroke-width="2.5" marker-end="url(#pa1)"/></svg>
+            </div>
+
+            <!-- Stage 3 -->
+            <div class="pipeline-stage pipeline-stage-emerald">
+              <div class="pipeline-num">3</div>
+              <h4>Analyse formatage</h4>
+              <span class="pipeline-component">FormatAnalyzer</span>
+              <div class="pipeline-detail">
+                <strong>Détection d'alignement</strong> (gauche, centre, droite, justifié)<br>
+                Inférence police (serif, sans-serif, mono)<br>
+                Taille police via bounding box<br>
+                Détection titres &amp; paragraphes<br>
+                Clustering DBSCAN (scikit-learn)
+              </div>
+              <div class="pipeline-io">
+                <span><strong>In:</strong> Annotations brutes</span>
+                <span><strong>Out:</strong> Données enrichies + formatage</span>
+              </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="pipeline-arrow">
+              <svg width="28" height="24" viewBox="0 0 28 24"><line x1="0" y1="12" x2="20" y2="12" stroke="#d1d5db" stroke-width="2.5" marker-end="url(#pa1)"/></svg>
+            </div>
+
+            <!-- Stage 4 -->
+            <div class="pipeline-stage pipeline-stage-amber">
+              <div class="pipeline-num">4</div>
+              <h4>Génération Word</h4>
+              <span class="pipeline-component">DocxBuilder</span>
+              <div class="pipeline-detail">
+                <strong>python-docx</strong><br>
+                Création styles personnalisés (Title, Body)<br>
+                Application formatage (polices, tailles, alignements)<br>
+                Espacements, sauts de page, marges<br>
+                Gras, italique, small caps
+              </div>
+              <div class="pipeline-io">
+                <span><strong>In:</strong> Données formatées</span>
+                <span><strong>Out:</strong> document_ocr.docx</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════ RÉSULTATS & ROI ═════════════════ -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Résultats, Gains &amp; ROI</h2>
+        <p class="section-subtitle">Des gains mesurés sur la conversion et le traitement documentaire</p>
+      </div>
+
+      <div class="grid grid-4">
+        <div class="card metric-card metric-card-blue">
+          <div class="metric-value">99&nbsp;%+</div>
+          <div class="metric-label">Précision OCR</div>
+          <div class="metric-desc">Google Cloud Vision API</div>
+        </div>
+        <div class="card metric-card metric-card-purple">
+          <div class="metric-value">2-3s</div>
+          <div class="metric-label">Par page (300 DPI)</div>
+          <div class="metric-desc">Avec parallélisation</div>
+        </div>
+        <div class="card metric-card metric-card-emerald">
+          <div class="metric-value">60+</div>
+          <div class="metric-label">Langues supportées</div>
+          <div class="metric-desc">Détection automatique</div>
+        </div>
+        <div class="card metric-card metric-card-amber">
+          <div class="metric-value">$0</div>
+          <div class="metric-label">Coût cache hit</div>
+          <div class="metric-desc">Cache SHA-256 &middot; TTL 30j</div>
+        </div>
+      </div>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Indicateur</th>
+            <th>OCR classique</th>
+            <th>Avec VisionOCR</th>
+            <th>Gain</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Précision OCR</td>
+            <td>85-90&nbsp;%</td>
+            <td>99&nbsp;%+</td>
+            <td class="gain-cell">+10 à +15 points</td>
+          </tr>
+          <tr>
+            <td>Préservation du formatage</td>
+            <td>Aucune ou partielle</td>
+            <td>Polices, alignements, espacements</td>
+            <td class="gain-cell">Formatage fidèle</td>
+          </tr>
+          <tr>
+            <td>Support langues</td>
+            <td>5-10 langues</td>
+            <td>60+ langues avec détection auto</td>
+            <td class="gain-cell">&times;6 à &times;12</td>
+          </tr>
+          <tr>
+            <td>Coût retraitement</td>
+            <td>Identique au 1er traitement</td>
+            <td>$0 (cache SHA-256)</td>
+            <td class="gain-cell">-100&nbsp;%</td>
+          </tr>
+          <tr>
+            <td>Interface</td>
+            <td>GUI complexe</td>
+            <td>CLI simple, scriptable</td>
+            <td class="gain-cell">Automatisable</td>
+          </tr>
+          <tr>
+            <td>Temps par page</td>
+            <td>Variable, souvent &gt;&nbsp;10s</td>
+            <td>2-3s (300 DPI)</td>
+            <td class="gain-cell">~&times;4 plus rapide</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Qualitative benefits -->
+      <div class="grid grid-6" style="margin-top:56px;">
+        <div class="card benefit-card">
+          <div class="benefit-emoji">&#128161;</div>
+          <h4>Open Source</h4>
+          <p>Code libre sous licence MIT. Extensible, auditable, communautaire.</p>
+        </div>
+        <div class="card benefit-card">
+          <div class="benefit-emoji">&#128421;</div>
+          <h4>Cross-platform</h4>
+          <p>Compatible Linux, macOS et Windows. Scripts d'installation automatiques.</p>
+        </div>
+        <div class="card benefit-card">
+          <div class="benefit-emoji">&#9989;</div>
+          <h4>Cache intelligent</h4>
+          <p>Réduit les coûts API de 100&nbsp;% sur les retraitements grâce au hash SHA-256.</p>
+        </div>
+        <div class="card benefit-card">
+          <div class="benefit-emoji">&#127912;</div>
+          <h4>Formatage fidèle</h4>
+          <p>Préservation des polices, styles, alignements et espacements du document original.</p>
+        </div>
+        <div class="card benefit-card">
+          <div class="benefit-emoji">&#128187;</div>
+          <h4>CLI scriptable</h4>
+          <p>Intégrable dans tout pipeline automatisé. Batch processing natif.</p>
+        </div>
+        <div class="card benefit-card">
+          <div class="benefit-emoji">&#128200;</div>
+          <h4>Logging avancé</h4>
+          <p>Loguru avec rotation, niveaux de verbosité (-v, -vv, -vvv) et statistiques API.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════ CTA ═════════════════ -->
+  <section class="cta-section">
+    <div class="container">
+      <h2>Prêt à convertir vos PDFs scannés ?</h2>
+      <p>Essayez VisionOCR dès maintenant. Installation en 2&nbsp;minutes, 1000&nbsp;pages gratuites par mois avec Google Cloud Vision API.</p>
+      <div class="cta-buttons">
+        <a href="https://github.com/iguane39/VisionOCR" class="btn btn-primary" target="_blank" rel="noopener">
+          Voir sur GitHub
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a href="https://github.com/iguane39/VisionOCR#-utilisation" class="btn btn-outline" target="_blank" rel="noopener">
+          Lire la documentation
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════ FOOTER ═════════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h5 style="font-size:1.3rem;margin-bottom:12px;">Vision<span style="color:var(--color-primary);">OCR</span></h5>
+          <p>Outil CLI Python pour convertir des PDFs scannés en documents Word éditables avec Google Cloud Vision API.</p>
+          <p style="margin-top:8px;">L'OCR de qualité professionnelle, accessible à tous.</p>
+        </div>
+        <div>
+          <h5>Liens</h5>
+          <ul>
+            <li><a href="https://github.com/iguane39/VisionOCR" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="https://github.com/iguane39/VisionOCR#-utilisation" target="_blank" rel="noopener">Documentation</a></li>
+            <li><a href="https://github.com/iguane39/VisionOCR/blob/master/CONTRIBUTING.md" target="_blank" rel="noopener">Contribuer</a></li>
+            <li><a href="https://github.com/iguane39/VisionOCR/issues" target="_blank" rel="noopener">Issues</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5>Technologies</h5>
+          <ul>
+            <li><a href="https://cloud.google.com/vision/docs" target="_blank" rel="noopener">Google Cloud Vision API</a></li>
+            <li><a href="https://python-docx.readthedocs.io/" target="_blank" rel="noopener">python-docx</a></li>
+            <li><a href="https://github.com/Belval/pdf2image" target="_blank" rel="noopener">pdf2image</a></li>
+            <li><a href="https://python.org" target="_blank" rel="noopener">Python</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5>Ressources</h5>
+          <ul>
+            <li><a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a></li>
+            <li><a href="https://github.com/iguane39/VisionOCR/blob/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
+            <li><a href="https://github.com/iguane39/VisionOCR/blob/master/LICENSE" target="_blank" rel="noopener">Licence MIT</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 VisionOCR — Open Source sous licence MIT</span>
+        <div>
+          <a href="https://github.com/iguane39/VisionOCR" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═════════════════ JS: Tab switching ═════════════════ -->
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
+      document.querySelectorAll('.tab-btn').forEach(function(el) { el.classList.remove('active'); });
+      document.getElementById(tabId).classList.add('active');
+      document.querySelector('[data-tab="' + tabId + '"]').classList.add('active');
+    }
+  </script>
+</body>
+</html>
